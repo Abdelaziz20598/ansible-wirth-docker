@@ -1,0 +1,12 @@
+---
+# vars file for web
+#[web:vars] was in the inventory before making roles
+# centos_pkg=curl
+# centos_pkg_state=latest
+
+# message="Hellllo Zizo:))))))"
+
+centos_pkg: curl
+centos_pkg_state: latest
+
+message: "Hellllo Zizo:))))))"

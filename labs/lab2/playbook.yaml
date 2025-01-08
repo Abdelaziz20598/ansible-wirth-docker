@@ -1,0 +1,48 @@
+---
+- name: play1
+  hosts: web
+  #become: yes   Use privilege escalation (sudo) to perform administrative tasks used in cfg
+  tasks:
+    - name: ensure that sudo is installed if not install it but it must be installed there before running
+      apt:
+        name: sudo
+        state: present
+        update_cache: yes  # Update the apt cache before installation
+
+    #ansible must be added to sudoer by root usermod -aG in the host
+    - name: Ensure ansible user exists and add to sudo group
+      user:
+        name: ansible
+        state: present
+        #groups: sudo
+        #append: yes  # Add ansible to the sudo group without removing from other groups
+
+
+
+- name: play2
+  hosts: web
+  #become: yes  used in cfg
+  tasks:
+    #- name: Update apt cache
+      #apt:
+        #update_cache: yes  # Ensure the apt cache is updated
+
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: latest  # Install the latest version of NGINX
+
+    - name: Copy index.html to NGINX web directory
+      copy:
+        src: ./index.html
+        dest: /usr/share/nginx/html/index.html
+        mode: '0644'  # Ensure proper permissions for the file
+
+    #- name: Restart nginx service
+      #ansible.builtin.service:
+        #name: nginx
+        #state: restarted  # Restart the nginx service to apply the changes
+    - name: restart nginx
+      service: 
+        name: nginx
+        state: restarted

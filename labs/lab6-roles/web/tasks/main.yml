@@ -1,0 +1,63 @@
+---
+# tasks file for web
+
+#updating the cache >> apt update
+- name: updating cache
+  apt:
+    update_cache: yes
+  tags: [update-chache, always]
+#cleaning cache to save storage
+- name: Clean apt cache 
+  command: apt-get clean
+
+#installing pkges like nginx and curl if distribution is ubuntu
+- name: installing many pkgs
+  apt: 
+    name: "{{ item.pkg_name }}"
+    state: "{{ item.pkg_state }}"
+  loop:
+    - { pkg_name: curl, pkg_state: present}
+    - {pkg_name: nginx, pkg_state: latest}
+  register: result
+  when: ansible_facts['distribution'] == "Ubuntu"
+
+- name: print result if nginx and curl installed
+  #tags: never
+  debug:
+    var: result
+#installing pkges like nginx and curl if distribution is centos,, phges stored in vars in the var file
+- name: installing pkg if Centos
+  package:
+    name: "{{ centos_pkg }}"
+    state: "{{ centos_pkg_state }}"
+  when: ansible_facts['distribution'] == "Centos"
+
+
+# must use this gather facts to use it in the when condition ansible_facts.packages >> else will cause an error
+- name: Gather package facts
+  ansible.builtin.package_facts:
+
+
+- name: Ensure nginx is started
+  #ansible.builtin.debug:
+    #msg: "nginx is installed and it will be start"
+  service:
+    name: nginx
+    state: started
+  when: "'nginx' in ansible_facts.packages"
+
+# - name: Copy the custom index.html file
+#   copy:
+#     src: ./index.html
+#     dest: /usr/share/nginx/html/index.html
+#     mode: '0666'
+#   notify: Restart nginx
+#using html code and put it to nginx's html and then use handler to restart nginx
+
+- name: Template index.html.j2
+  template:
+    src: ./index.html.j2
+    #dest: /usr/share/nginx/html/index.html
+    dest: /var/www/html/index.html
+  notify: Restart nginx
+

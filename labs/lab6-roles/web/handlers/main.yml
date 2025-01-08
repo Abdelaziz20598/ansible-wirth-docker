@@ -1,0 +1,12 @@
+---
+# handlers file for web
+#Restart nginx service
+
+#handlers:
+- name: Restart nginx
+  service:
+    name: nginx
+    state: restarted
+  #cant use debug in handler
+  #debug:
+    #msg: "nginx is restarted"

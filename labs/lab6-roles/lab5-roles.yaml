@@ -1,0 +1,7 @@
+---
+- name: paly1
+  hosts: all
+  gather_facts: true
+  roles:
+    - web
+

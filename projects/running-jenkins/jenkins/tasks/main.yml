@@ -1,0 +1,93 @@
+---
+# tasks file for web
+
+#updating the cache >> apt update
+- name: updating cache
+  apt:
+    update_cache: yes
+  tags: [update-chache, always]
+
+#cleaning cache to save storage
+- name: Clean apt cache 
+  command: apt-get clean
+
+
+# must use this gather facts to use it in the when condition ansible_facts.packages >> else will cause an error
+- name: Gather package facts
+  ansible.builtin.package_facts:
+
+
+#check if docker already installed
+- name: checking docker
+  command: docker --version
+  register: docker_installed
+  ignore_errors: yes
+
+# Display the result of the Docker version check
+- name: Display docker installation status
+  debug:
+    var: docker_installed
+
+# Install Docker if not already installed
+- name: Install Docker packages if not already installed
+  copy:
+    src: ./install-docker.sh
+    dest: /home/{{ ansible_user }}/install_docker.sh
+    mode: '0777'  # Ensure the script has executable permissions
+  when: docker_installed.failed == true
+  
+- name: Run the install-docker.sh script
+  command: /bin/bash /home/{{ ansible_user }}/install_docker.sh
+  when: docker_installed.failed == true
+  notify:
+    - Check Docker status
+
+
+# - name: Ensure docker is started
+#   #ansible.builtin.debug:
+#     #msg: "nginx is installed and it will be start"
+#   service:
+#     name: docker
+#     state: started
+#   when: "'docker' in ansible_facts.packages"
+
+
+
+#use a plugin that requires the Docker SDK for Python, you need to install it on the machine running ansible
+#pip and docker python library must be installed to use docker in ansible
+
+# Installing pip3
+- name: Installing pip3
+  apt:
+    name: python3-pip
+    state: latest
+    update_cache: yes  # Ensures apt cache is updated before installation
+
+# Installing Docker Python library
+- name: Installing Docker SDK for Python
+  pip:
+    name: "{{ ubuntu_pkg }}"  # Uses the variable ubuntu_pkg (docker)
+    state: "{{ ubuntu_pkg_state }}"  # Ensures the package is installed
+    executable: pip3  # Ensures it's using Python 3's pip
+
+# Running Jenkins container via Docker
+- name: Running Jenkins container
+  docker_container:
+    name: jenkins
+    detach: true  # Run the container in detached mode
+    ports:
+      - "8080:8080"
+    # volumes: >>> error mybe the path isn't correct
+    #   - /var/jenkins_home:/var/jenkins_home
+    restart_policy: always  # Ensures the container always restarts if needed
+    image: jenkins/jenkins:lts #image must be last thing
+
+
+# # Running Jenkins container using Docker Compose (incomplete)
+# - name: Running Jenkins using Docker Compose
+#   docker_compose:
+#     project_src: ./docker-compose.yml
+#     restarted: yes
+#     pulled: yes
+#     build: yes
+#   when: docker_installed.failed == false

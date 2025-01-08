@@ -1,0 +1,4 @@
+
+[web]
+172.17.0.2  package_name=nginx      package_status=latest
+172.17.0.3  package_name=python3    package_status=latest

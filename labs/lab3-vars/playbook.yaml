@@ -1,0 +1,28 @@
+---
+- name: check updates and remove cache
+  hosts: web
+  #gather_facts: false
+  #vars:
+   # package_name: nginx
+   # package_state: latest
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      tags: [update_cache, always]
+
+    - name: Clean apt cache 
+      command: apt-get clean
+      #apt:
+        #clean: yes #added only in ansible-core 2.13, installed on my host core 2.12.10
+      
+      tags: clean_cache
+
+- name: Installing packages
+  hosts: web
+  tags: installing
+  tasks:
+    - name: Install package
+      apt:
+        name: "{{ package_name }}" #the package you want to install, defined in the inventory
+        state: "{{ package_status }}" # Define the desired state (latest, present, etc.)

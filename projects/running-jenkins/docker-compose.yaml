@@ -1,0 +1,19 @@
+---
+versio: 3
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/jenkins_home:/var/jenkins_home
+    restart: always
+
+
+#put this to ansible file if you want to run as it docker compose not just docker
+#-  name: Run jenkins container in docker compose
+#   ansible.builtin.docker_compose:
+      #project_src: ./docker-compose.yaml
+      #restarted: yes
+      

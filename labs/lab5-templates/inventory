@@ -1,0 +1,9 @@
+[web]
+172.17.0.2
+192.168.1.181
+
+[web:vars]
+centos_pkg=curl
+centos_pkg_state=latest
+
+message="Hellllo Zizo:))))))"
