@@ -29,14 +29,16 @@
     var: docker_installed
 
 # Install Docker if not already installed
-- name: Install Docker packages if not already installed
+#copying the script
+- name: copying docker-installing script to the server
   copy:
     src: ./install-docker.sh
     dest: /home/{{ ansible_user }}/install_docker.sh
     mode: '0777'  # Ensure the script has executable permissions
   when: docker_installed.failed == true
-  
-- name: Run the install-docker.sh script
+
+# Running the script to install Docker packages if not already installed
+- name: Run the install-docker.sh script 
   command: /bin/bash /home/{{ ansible_user }}/install_docker.sh
   when: docker_installed.failed == true
   notify:
@@ -71,17 +73,37 @@
     executable: pip3  # Ensures it's using Python 3's pip
 
 # Running Jenkins container via Docker
+#before running jenkins container >> ensure that no jenkins containers already exist to avoid errors
+- name: removing old jenkins container
+  docker_container:
+    name: jenkins
+    state: absent
+  ignore_errors: true # In case the container doesn't exist, continue without failing
+
+- name: Create a Docker volume for Jenkins
+  docker_volume:
+    name: jenkins_home
+    state: present #if already exist to avoid errors
+
+- name: Copying jenkins_home from my original configuration to the server to mount on it
+#There was a problem that volume var/lib/docker doesn't exist because it installed with user "abdelaziz" and no permissions for other to access docker>> solution i give permission to rwx for all users including ansibl $(chmod 777 +R docker/) and $(usermod -s /bin/bash ansible) 
+  copy:
+    src: ./jenkins_home/_data/ #the whole problem because the permission for jenkins_home and _data on the remote server the ansible user didn't have permission i dont know why?
+    mode: '0777' #cuz these files created here i want to give perm to ansible user in the remote server
+    dest: /var/lib/docker/volumes/jenkins_home/_data/
+
+
 - name: Running Jenkins container
   docker_container:
     name: jenkins
     detach: true  # Run the container in detached mode
     ports:
       - "8080:8080"
-    # volumes: >>> error mybe the path isn't correct
-    #   - /var/jenkins_home:/var/jenkins_home
+    # >>> error mybe the path isn't correct, cuz i make a mount volume and the dir /var/jenkins_home doesnt exist >> sol make it with volume not mount or make the dir (mkdir var/jenkins_home) if u want to use mount
+    volumes:
+      - jenkins_home:/var/jenkins_home
     restart_policy: always  # Ensures the container always restarts if needed
     image: jenkins/jenkins:lts #image must be last thing
-
 
 # # Running Jenkins container using Docker Compose (incomplete)
 # - name: Running Jenkins using Docker Compose
