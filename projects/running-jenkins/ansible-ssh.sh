@@ -15,8 +15,8 @@ if [ ! -f "$file" ]; then
 	echo "The file not found!"
 	exit 1
 fi
-#generating keys and naming it ansible 
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/ansible
+#generating keys and naming it ansible , the key name must same to the username of the remote server
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/abdelaziz
 
 
 #number of lines == number of users i want to ssh into it
@@ -47,11 +47,11 @@ while IFS= read -r line || [ -n "$line" ]; do
     # 		usermod -aG sudo ansible
     # 	fi
     		
-    	
+    ssh "$modified_line"
     # Copy the SSH public key to the remote server (user@host)
-    ssh-copy-id -i ~/.ssh/ansible.pub "$modified_line"
+    ssh-copy-id -i ~/.ssh/abdelaziz.pub "$modified_line"
     # Attempt to copy the SSH public key to the remote server
-    if ! ssh-copy-id -i ~/.ssh/ansible.pub "$modified_line"; then
+    if ! ssh-copy-id -i ~/.ssh/abdelaziz.pub "$modified_line"; then
         echo "Failed to copy SSH key to $modified_line"
     else
         echo "Successfully copied SSH key to $modified_line"

@@ -83,17 +83,49 @@
 - name: Create a Docker volume for Jenkins
   docker_volume:
     name: jenkins_home
-    state: present #if already exist to avoid errors
+    state: present #don't create if already exist to avoid errors
+  register: jenkins_home_stat
+
+# Display the result of the Docker version check
+- name: Display docker volume (jenkins_home) status
+  debug:
+    var: jenkins_home_stat
+# - name: Set ownership of docker to docker group
+#   ansible.builtin.command:
+#     cmd: chown -R root:docker /var/lib/docker/
+#     #cmd: chmod 775 -R /var/lib/docker/
+
+# - name: Set ownership of jenkins_home directories to ansible user
+#   ansible.builtin.command:
+#     cmd: chown -R abdelaziz:docker /var/lib/docker/volumes/jenkins_home/
+
+# - name: Set permission of jenkins_home and _data directories to ansible user
+#   ansible.builtin.command:
+#     cmd: chmod -R 777 /var/lib/docker/volumes/jenkins_home/
+
+# - name: Set proper permissions for jenkins_home and _data
+#   ansible.builtin.file:
+#     path: /var/lib/docker/
+#     mode: '0775'  # or any appropriate permission, 0777 allows rwx for owner and group, rx for others
+#     recurse: yes #o apply the action recursively to all files and directories within the specified path (-R)
 
 - name: Copying jenkins_home from my original configuration to the server to mount on it
+  #become_user: abdelaziz
 #There was a problem that volume var/lib/docker doesn't exist because it installed with user "abdelaziz" and no permissions for other to access docker>> solution i give permission to rwx for all users including ansibl $(chmod 777 +R docker/) and $(usermod -s /bin/bash ansible) 
-  copy:
+  ansible.builtin.copy:
     src: ./jenkins_home/_data/ #the whole problem because the permission for jenkins_home and _data on the remote server the ansible user didn't have permission i dont know why?
-    mode: '0777' #cuz these files created here i want to give perm to ansible user in the remote server
+    mode: '0755' #cuz these files created here i want to give perm to ansible user in the remote server
     dest: /var/lib/docker/volumes/jenkins_home/_data/
-
+    owner: abdelaziz
+    group: abdelaziz
+  become: true  # Use become to execute as root if needed
+    #recurse: yes
+    #creates: /var/lib/docker/volumes/jenkins_home/_data/  # Specify a file or directory that should exist, not to copy if already exist
+  #when: jenkins_home_stat.changed == true
 
 - name: Running Jenkins container
+  become_user: abdelaziz  # This will be ignored because `become: false`, when ansible runs the cmd with become: true it runs Docker with root priviliges, that may cause errors like container cant start see the screenshots
+  #become: false  # Disables privilege escalation
   docker_container:
     name: jenkins
     detach: true  # Run the container in detached mode
@@ -102,7 +134,7 @@
     # >>> error mybe the path isn't correct, cuz i make a mount volume and the dir /var/jenkins_home doesnt exist >> sol make it with volume not mount or make the dir (mkdir var/jenkins_home) if u want to use mount
     volumes:
       - jenkins_home:/var/jenkins_home
-    restart_policy: always  # Ensures the container always restarts if needed
+    #restart_policy: always  # Ensures the container always restarts if needed
     image: jenkins/jenkins:lts #image must be last thing
 
 # # Running Jenkins container using Docker Compose (incomplete)
