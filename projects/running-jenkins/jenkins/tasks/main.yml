@@ -34,7 +34,7 @@
   copy:
     src: ./install-docker.sh
     dest: /home/{{ ansible_user }}/install_docker.sh
-    mode: '0777'  # Ensure the script has executable permissions
+    mode: '0771'  # Ensure the script has executable permissions
   when: docker_installed.failed == true
 
 # Running the script to install Docker packages if not already installed
@@ -73,6 +73,37 @@
     executable: pip3  # Ensures it's using Python 3's pip
 
 # Running Jenkins container via Docker
+
+#copying the dockerfile to build jenkins-docker and push it to dockerhub
+- name: copy dockerfile
+  ansible.builtin.copy:
+    src: ./jenkins-docker #dont put / "abdelaziz/" cuz i want to copy the whole directory not only inside it
+    mode: '0751' #cuz these files created here i want to give perm to ansible user in the remote server
+    dest: /home/abdelaziz/ 
+    owner: abdelaziz
+    group: docker
+  become: true  # Use become to execute as root if needed
+#build and push the image to dockerhub
+
+# Login to Docker Hub
+- name: Login to Docker Hub
+  docker_login:
+    username: "{{ dockerhub_username }}"  # Define your Docker Hub username as a variable or set directly
+    password: "{{ dockerhub_password }}"  # Define your Docker Hub password as a variable or set directly
+    #registry: "https://index.docker.io/v1/"  # Default Docker Hub registry
+  no_log: true  # Optionally hide the password in the logs for security reasons
+
+# Push the Docker image to Docker Hub
+- name: Push Jenkins Docker image to Docker Hub
+  docker_image:
+    build:
+      path: /home/abdelaziz/jenkins-docker/
+    name: abdelaziz20598/jenkins-docker  # Replace with your desired image name
+    tag: v1.1
+    push: true
+    source: build
+  become_user: abdelaziz  # Ensure this is done by the correct user
+
 #before running jenkins container >> ensure that no jenkins containers already exist to avoid errors
 - name: removing old jenkins container
   docker_container:
@@ -117,11 +148,18 @@
     mode: '0755' #cuz these files created here i want to give perm to ansible user in the remote server
     dest: /var/lib/docker/volumes/jenkins_home/_data/
     owner: abdelaziz
-    group: abdelaziz
+    group: docker
   become: true  # Use become to execute as root if needed
     #recurse: yes
     #creates: /var/lib/docker/volumes/jenkins_home/_data/  # Specify a file or directory that should exist, not to copy if already exist
-  #when: jenkins_home_stat.changed == true
+  when: jenkins_home_stat.changed == true
+
+- name: Set correct permissions for /var/run/docker.sock
+  file:
+    path: /var/run/docker.sock
+    mode: "0660"
+    owner: root
+    group: docker
 
 - name: Running Jenkins container
   become_user: abdelaziz  # This will be ignored because `become: false`, when ansible runs the cmd with become: true it runs Docker with root priviliges, that may cause errors like container cant start see the screenshots
@@ -134,8 +172,9 @@
     # >>> error mybe the path isn't correct, cuz i make a mount volume and the dir /var/jenkins_home doesnt exist >> sol make it with volume not mount or make the dir (mkdir var/jenkins_home) if u want to use mount
     volumes:
       - jenkins_home:/var/jenkins_home
+      - /var/run:/var/run
     #restart_policy: always  # Ensures the container always restarts if needed
-    image: jenkins/jenkins:lts #image must be last thing
+    image: abdelaziz20598/jenkins-docker:v1.1 #image must be last thing
 
 # # Running Jenkins container using Docker Compose (incomplete)
 # - name: Running Jenkins using Docker Compose

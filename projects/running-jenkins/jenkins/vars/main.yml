@@ -9,4 +9,7 @@
 ubuntu_pkg: docker
 ubuntu_pkg_state: present
 ansible_user: abdelaziz
+dockerhub_username: abdelaziz20598
+dockerhub_password: 01018854247eg
+
 #message: "Docker already installed"
